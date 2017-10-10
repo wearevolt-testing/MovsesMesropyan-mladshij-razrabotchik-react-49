@@ -1,1 +1,1 @@
-# volt-react-task
+# react/redux task
