@@ -1,0 +1,57 @@
+'use strict';
+
+var path = require('path');
+var webpack = require('webpack');
+var HtmlWebpackPlugin = require('html-webpack-plugin');
+
+module.exports = {
+    entry: [
+        path.join(__dirname, 'src/app.jsx')
+    ],
+    resolve: {
+        root: [
+            path.resolve(__dirname, "src"),
+        ],
+        extensions: ['', '.js', '.jsx', '.css']
+    },
+    output: {
+        path: path.join(__dirname, '/public/'),
+        filename: '[name].js',
+        publicPath: '/'
+    },
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: 'src/index.tpl.html',
+            inject: 'body',
+            filename: 'index.html'
+        }),
+        new webpack.optimize.OccurenceOrderPlugin(),
+        new webpack.HotModuleReplacementPlugin(),
+        new webpack.NoErrorsPlugin(),
+        new webpack.DefinePlugin({
+            'process.env.NODE_ENV': JSON.stringify('production')
+        }),
+        new webpack.optimize.UglifyJsPlugin({
+            compress: {
+                warnings: true
+            }
+        })
+    ],
+    module: {
+        loaders: [{
+            loader: 'babel-loader',
+            query: {
+                presets: ['react', 'es2015']
+            },
+            test: /\.jsx?$/,
+            exclude: /node_modules/
+        }, {
+            test: /\.css$/,
+            loader: 'style!css'
+        }, {
+            test: /\.png|\.jpe?g|\.gif$/,
+            exclude: /node_modules$/,
+            loader: 'url-loader?limit=8192'
+        }]
+    }
+};
