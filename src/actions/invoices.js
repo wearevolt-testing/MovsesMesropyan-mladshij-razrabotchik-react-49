@@ -1,29 +1,6 @@
 import * as types from '../constants/actionTypes';
 import invoiceAppAPI from '../services/api';
 
-export const getInvoiceList = () => {
-  return (dispatch) => {
-    dispatch({type: types.DATA_IS_LOADING, payload: true});
-    invoiceAppAPI.getInvoiceList().then((response) => {
-      dispatch({type: types.DATA_IS_LOADING, payload: false});
-      if (response.status === 200 && response.data) {
-        dispatch({type: types.GET_INVOICE_LIST, payload: response.data})
-      }
-    })
-  }
-};
-
-export const getInvoiceElements = () => {//TODO for testing
-  return (dispatch) => {
-    invoiceAppAPI.getInvoiceElements().then((response) => {
-      //debugger;
-      if (response.status === 200 && response.data) {
-        console.log(response.data);
-      }
-    })
-  }
-};
-
 export const getInvoiceProductMeta = () => {
   return (dispatch) => {
     invoiceAppAPI.getProductList().then((response) => {
@@ -44,9 +21,33 @@ export const getInvoiceCustomerMeta = () => {
   }
 };
 
+export const getInvoiceList = () => {
+  return (dispatch) => {
+    dispatch({type: types.DATA_IS_LOADING, payload: true});
+    invoiceAppAPI.getInvoiceList().then((response) => {
+      dispatch({type: types.DATA_IS_LOADING, payload: false});
+      if (response.status === 200 && response.data) {
+        dispatch({type: types.GET_INVOICE_LIST, payload: response.data})
+      }
+    })
+  }
+};
+
+export const getInvoice = (invoiceId) => {
+  return (dispatch) => {
+    dispatch({type: types.DATA_IS_LOADING, payload: true});
+    invoiceAppAPI.getInvoice(invoiceId).then((response) => {
+      dispatch({type: types.DATA_IS_LOADING, payload: false});
+      if (response.status === 200 && response.data) {
+        dispatch({type: types.GET_INVOICE, payload: response.data})
+      }
+    })
+  }
+};
+
 export const createInvoice = (invoice, invoiceElements) => {
   return (dispatch, getState) => {
-    invoiceAppAPI.createInvoice(invoice).then((response) => {
+    return invoiceAppAPI.createInvoice(invoice).then((response) => {
       if (response.status === 200 && response.data) {
         let state = getState();
         if(state && state.invoices && state.invoices.invoicesList) {
@@ -65,17 +66,26 @@ export const createInvoice = (invoice, invoiceElements) => {
               product_id: element,
               quantity: invoiceElements[element].quantity
             };
-            promises.push(invoiceAppAPI.createInvoiceElements(invoiceId, invoiceElementToSend));
+            promises.push(invoiceAppAPI.createInvoiceElement(invoiceId, invoiceElementToSend));
           }
           Promise.all(promises)
               .then((result) => {
-                /*dispatch({type: types.LOAD_MONETIZATION_DATA, payload: result})
-                dispatch({type: types.ITEM_FINISHED_LOADING})*/
-                console.log(result);
+                //return result;
               });
         }
       }
+      return response;
     });
+  }
+};
+export const editInvoice = (invoice) => {
+  return (dispatch, getState) => {
+    return invoiceAppAPI.editInvoice(invoice).then((response) => {
+      if (response.status === 200 && response.data) {
+        dispatch({type: types.UPDATE_INVOICE, payload: response.data})
+      }
+      return response;
+    })
   }
 };
 
@@ -108,8 +118,8 @@ export const deleteInvoice = (invoice) => {
                       });
                       invoicesList.splice(index, 1);
                       dispatch({type: types.UPDATE_INVOICE_LIST, payload: invoicesList});
+                      dispatch({type: types.CLOSE_INVOICE_MODAL, payload: {invoice: null, showModal: false}});
                     }
-
                   }
                 });
               }
@@ -119,13 +129,45 @@ export const deleteInvoice = (invoice) => {
   }
 };
 
-export const openInvoicesModal = (invoice, action) => {
+export const getInvoiceElements = (invoiceId) => {
   return (dispatch) => {
-    dispatch({type: types.OPEN_INVOICE_MODAL, payload: {invoice, action, showModal: true}});
+    invoiceAppAPI.getInvoiceElements(invoiceId).then((response) => {
+      if(response.status == 200 && response.data) {
+        dispatch({type: types.GET_INVOICE_ELEMENTS, payload: response.data});
+      }
+    });
   }
 };
 
-export const closeInvoicesModal = () => {
+export const createInvoiceElement = (invoiceId, element) => {
+  return () => {
+    return invoiceAppAPI.createInvoiceElement(invoiceId, element)
+  }
+};
+
+export const deleteInvoiceElement = (invoiceId, element) => {
+  return (dispatch) => {
+    invoiceAppAPI.deleteInvoiceElement(invoiceId, element).then((response) => {
+      if(response.status == 200 && response.data) {
+        dispatch({type: types.CLOSE_INVOICE_MODAL, payload: {invoice: null, showModal: false}});
+
+        invoiceAppAPI.getInvoiceElements(invoiceId).then((response) => {
+          if(response.status == 200 && response.data) {
+            dispatch({type: types.GET_INVOICE_ELEMENTS, payload: response.data});
+          }
+        });
+      }
+    });
+  }
+};
+
+export const openInvoiceModal = (invoice, elementId) => {
+  return (dispatch) => {
+    dispatch({type: types.OPEN_INVOICE_MODAL, payload: {invoice, elementId, showModal: true}});
+  }
+};
+
+export const closeInvoiceModal = () => {
   return (dispatch) => {
     dispatch({type: types.CLOSE_INVOICE_MODAL, payload: {invoice: null, showModal: false}});
   }

@@ -32,7 +32,11 @@ export class Invoices extends React.Component{
     }
 
     openModal(invoice) {
-        this.props.deleteInvoice(invoice);
+        this.props.openInvoiceModal(invoice, null);
+    }
+
+    redirectTo(invoiceId) {
+        this.props.history.push(`/invoices/${invoiceId}/edit`);
     }
 
     render(){
@@ -70,7 +74,7 @@ export class Invoices extends React.Component{
                                     <td>{invoice.discount}</td>
                                     <td>{invoice.total}</td>
                                     <td>
-                                        <Button className="marginRight10" bsStyle="warning">Edit</Button>
+                                        <Button className="marginRight10" bsStyle="warning" onClick={this.redirectTo.bind(this, invoice.id)}>Edit</Button>
                                         <Button bsStyle="danger" onClick={this.openModal.bind(this, invoice, 'delete')}>Delete</Button>
                                     </td>
                                 </tr>

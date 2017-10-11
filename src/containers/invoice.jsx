@@ -11,7 +11,9 @@ export class InvoiceEdit extends React.Component{
         super(props);
         this.state = {
             showModal: false,//
-            action: 'create',//
+            mode: 'create',
+            elementIsSaving: false,
+            invoiceIsSaving: false,
             productList: [],
             customerList: [],
             invoice: {
@@ -35,16 +37,29 @@ export class InvoiceEdit extends React.Component{
     componentDidMount() {
         this.props.getInvoiceProductMeta();
         this.props.getInvoiceCustomerMeta();
+        let url = this.props.location.pathname;
+
+        if(/^(\/invoices\/[a-z0-9]+\/edit)$/.test(url)) {
+            this.setState({mode: 'edit'});
+            let invoiceId = url.split('/')[2];
+            this.props.getInvoice(invoiceId);
+        } else {
+            this.props.history.push(`/invoices/create`);
+        }
     }
 
     componentWillReceiveProps (nextProps) {
+        let promises = [];
+
         if(nextProps.invoiceProductMeta && (nextProps.invoiceProductMeta.length != this.state.productList.length)) {
              let productList = nextProps.invoiceProductMeta;
              let processedProductList = [];
              productList.map((product) => {
                 processedProductList.push({value: product.id, label: product.name, price: product.price});
              });
-            this.setState({productList: processedProductList})
+            this.setState({productList: processedProductList}, () => {
+                promises.push(processedProductList);
+            })
         }
         if(nextProps.invoiceCustomerMeta && (nextProps.invoiceCustomerMeta.length != this.state.productList.length)) {
             let customerList = nextProps.invoiceCustomerMeta;
@@ -54,14 +69,48 @@ export class InvoiceEdit extends React.Component{
             });
             this.setState({customerList: processedCustomerList})
         }
+        if(this.state.mode == 'edit') {
+            if(nextProps.invoice && nextProps.invoice.id && (nextProps.invoice.id != this.state.invoice.id)) {
+                this.setState({invoice: nextProps.invoice}, () => {
+                    this.state.customerList.map((customer, i) => {
+                        if(customer.value == this.state.invoice.customer_id) {
+                            this.setState({currentCustomer: customer});
+                        }
+                    });
+                    this.props.getInvoiceElements(this.state.invoice.id);
+                });
+            }
+            if(nextProps.invoiceElements && nextProps.invoiceElements.length) {
+                Promise.all(promises)
+                    .then((result) => {
+                        let loadedInvoiceElements = nextProps.invoiceElements;
+                        let invoiceElements = {};
+                        let productList = {};
+                        this.state.productList.map((product, i) => {
+                            productList[product.value] = product;
+                        });
+                        loadedInvoiceElements.map((element, i) => {
+                            invoiceElements[element.id] = {
+                                name: productList[element.product_id].label,
+                                product_id: productList[element.product_id].value,
+                                price: productList[element.product_id].price,
+                                quantity: element.quantity
+                            };
+                        });
+                        this.setState({invoiceElements}, () => {
+                            //console.log(this.state.invoiceElements, this.state.productList);
+                        });
+                    });
+
+            }
+        }
+
     }
 
     discountChange(event) {
         let invoice = this.state.invoice;
-        invoice[event.target.name] = event.target.value || 0;
-        this.setState({invoice}, () => {
-            //console.log(this.state.invoice);
-        });
+        invoice[event.target.name] = (event.target.value > 100) ? 100 : (event.target.value < 0) ? 0 : event.target.value;
+        this.setState({invoice});
     }
 
     customerChange(val) {
@@ -79,20 +128,34 @@ export class InvoiceEdit extends React.Component{
     }
 
     addElement() {
-        let { invoiceElements, currentProduct } = this.state;
+        let { invoice, invoiceElements, currentProduct } = this.state;
         if(invoiceElements[currentProduct.value]) return;
-        console.log(this.state.currentProduct, invoiceElements);
         invoiceElements[currentProduct.value] = {
             name: currentProduct.label,
             product_id: currentProduct.value,
             price: currentProduct.price,
             quantity: 1
         };
-        this.setState({invoiceElements});
+        this.setState({invoiceElements}, () => {
+            if(this.state.mode == 'edit') {
+                let elementToSend = {
+                    invoice_id: invoice.id,
+                    product_id: currentProduct.value,
+                    quantity: 1
+                };
+                this.setState({elementIsSaving: true});
+                this.props.createInvoiceElement(invoice.id, elementToSend).then((response) => {
+                    if (response.status === 200 && response.data) {
+                        this.setState({elementIsSaving: false});
+                    }
+                });
+            }
+        });
     }
 
-    deleteElement() {
-
+    deleteElement(elementId) {
+        let { invoice } = this.state;
+        this.props.openInvoiceModal(invoice, elementId);
     }
 
     changeQty(event) {
@@ -104,14 +167,19 @@ export class InvoiceEdit extends React.Component{
 
     saveInvoice() {
         let {invoice, invoiceElements} = this.state;
-        let invoiceToSend = invoice;
-
-        if(invoiceToSend.id == null) {
-            delete invoiceToSend.id;
+        if(this.state.mode == 'create') {
+            this.props.createInvoice(invoice, invoiceElements).then((result) => {
+                if (result.status === 200) {
+                    this.props.history.push(`/invoices`);
+                }
+            });
+        } else if(this.state.mode == 'edit') {
+            this.props.editInvoice(invoice).then((result) => {
+                if (result.status === 200) {
+                    this.props.history.push(`/invoices`);
+                }
+            });
         }
-
-        this.props.createInvoice(invoice, invoiceElements);
-        console.log(invoiceToSend, invoiceElements);
     }
 
     render() {
@@ -122,38 +190,38 @@ export class InvoiceEdit extends React.Component{
             <div className="container">
                 <div className="row">
                     <h1 className="col-lg-12">Create invoice</h1>
-                    <Form horizontal>
-                     <Col sm={4}>
-                            <FormGroup>
-                                <ControlLabel>Discount (%)</ControlLabel>
-                                <FormControl
-                                    type="number"
-                                    name="discount"
-                                    placeholder="Discount"
-                                    min="0"
-                                    value={this.state.invoice.discount}
-                                    onChange={this.discountChange}/>
-                            </FormGroup>
-                     </Col>
+                     <Form horizontal>
+                         <Col sm={4}>
+                                <FormGroup>
+                                    <ControlLabel>Discount (%)</ControlLabel>
+                                    <FormControl
+                                        type="number"
+                                        name="discount"
+                                        placeholder="Discount"
+                                        min="0"
+                                        value={this.state.invoice.discount}
+                                        onChange={this.discountChange}/>
+                                </FormGroup>
+                         </Col>
 
-                     <Col  sm={12}></Col>
+                         <Col sm={12}></Col>
 
-                     <Col  sm={5}>
-                            <FormGroup validationState={this.state.invoice.customer_id ? (this.state.invoice.customer_id > 0 ? 'success' : 'error') : null}>
-                                <ControlLabel>Customer</ControlLabel>
-                                <Select
-                                    name="form-field-name"
-                                    value={this.state.currentCustomer}
-                                    options={this.state.customerList}
-                                    isLoading={!this.state.customerList.length}
-                                    onChange={this.customerChange}
-                                    />
-                            </FormGroup>
-                     </Col>
+                         <Col sm={5}>
+                                <FormGroup validationState={this.state.invoice.customer_id ? (this.state.invoice.customer_id > 0 ? 'success' : 'error') : null}>
+                                    <ControlLabel>Customer</ControlLabel>
+                                    <Select
+                                        name="form-field-name"
+                                        value={this.state.currentCustomer}
+                                        options={this.state.customerList}
+                                        isLoading={!this.state.customerList.length}
+                                        onChange={this.customerChange}
+                                        />
+                                </FormGroup>
+                         </Col>
 
-                        <Col  sm={12}></Col>
+                         <Col sm={12}></Col>
 
-                        <Col  sm={4}>
+                         <Col sm={4}>
                             <FormGroup>
                                 <ControlLabel>Add Product</ControlLabel>
                                 <Select
@@ -164,16 +232,17 @@ export class InvoiceEdit extends React.Component{
                                     onChange={this.productChange}
                                     />
                             </FormGroup>
-                        </Col>
-                        <Col  sm={3}>
+                         </Col>
+                         <Col  sm={3}>
                             <Button className="marginTop20 floatLeft"
                                     bsStyle="primary"
                                     onClick={this.addElement}
                                     disabled={!this.state.currentProduct}>Add</Button>
-                        </Col>
+                         </Col>
 
-                        <Col  sm={12}></Col>
-                        <Col  sm={12}>
+                         <Col sm={12}></Col>
+
+                         <Col sm={12}>
                             <Table responsive>
                                 <thead>
                                 <tr>
@@ -184,35 +253,36 @@ export class InvoiceEdit extends React.Component{
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {invoiceElementsKeys ? invoiceElementsKeys.map((element, i) =>
+                                {invoiceElementsKeys ? invoiceElementsKeys.map((elementId, i) =>
                                         <tr key={i}>
-                                            <td>{invoiceElements[element].name}</td>
-                                            <td>{invoiceElements[element].price}</td>
+                                            <td>{invoiceElements[elementId].name}</td>
+                                            <td>{invoiceElements[elementId].price}</td>
                                             <td>
                                                 <FormControl
                                                     type="number"
-                                                    name={element}
+                                                    name={elementId}
                                                     placeholder="Quantity"
-                                                    value={invoiceElements[element].quantity}
+                                                    value={invoiceElements[elementId].quantity}
                                                     onChange={this.changeQty}/>
                                             </td>
                                             <td>
-                                                <Button bsStyle="danger" onClick={this.deleteElement.bind(this, invoiceElements[element])}>Delete</Button>
+                                                <Button bsStyle="danger" onClick={this.deleteElement.bind(this, elementId)}>Delete</Button>
+                                                {this.state.elementIsSaving ? <span>L</span> : null}
                                             </td>
                                         </tr>
                                 ) : null}
                                 </tbody>
                             </Table>
-                        </Col>
+                         </Col>
 
-                        <Col  sm={3}>
+                         <Col sm={3}>
                             <Button className="marginTop20 floatLeft"
                                     bsStyle="success"
                                     onClick={this.saveInvoice}
                                     disabled={!this.state.invoice.customer_id}>Save</Button>
-                        </Col>
+                         </Col>
 
-                        <Col  sm={12}></Col>
+                         <Col sm={12}></Col>
                     </Form>
                 </div>
             </div>

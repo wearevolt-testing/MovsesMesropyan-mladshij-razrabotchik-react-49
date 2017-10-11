@@ -10,6 +10,7 @@ import Products from './Products';
 
 import CustomerModal from '../components/customerModal';
 import ProductModal from '../components/productModal';
+import InvoiceModal from '../components/invoiceModal';
 
 
 export default class Main extends Component {
@@ -28,10 +29,12 @@ export default class Main extends Component {
                       <Route exact path='/products' component={Products}/>
                       <Route exact path='/invoices' component={Invoices}/>
                       <Route exact path='/invoices/create' component={InvoiceEdit}/>
+                      <Route exact path='/invoices/:id/edit' component={InvoiceEdit}/>
                       <Redirect to='/' />
                   </Switch>
                   <ProductModal />
                   <CustomerModal />
+                  <InvoiceModal />
               </div>
           </BrowserRouter>
       );
