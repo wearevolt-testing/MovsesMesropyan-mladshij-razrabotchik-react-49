@@ -1,6 +1,13 @@
 import * as types from '../constants/actionTypes';
 import invoiceAppAPI from '../services/api';
 
+const ERROR_ALERT = {
+  showAlert: true,
+  type: 'danger',
+  title: 'Oh snap! You got an error!',
+  body: 'Something went wrong. Please try again'
+};
+
 export const getInvoiceProductMeta = () => {
   return (dispatch) => {
     invoiceAppAPI.getProductList().then((response) => {
@@ -29,10 +36,10 @@ export const getInvoiceList = () => {
       if (response.status === 200 && response.data && Array.isArray(response.data)) {
         dispatch({type: types.GET_INVOICE_LIST, payload: response.data})
       } else {
-        dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
+        dispatch({type: types.ALERT, payload: ERROR_ALERT});
       }
     }, (error) => {
-        dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
+        dispatch({type: types.ALERT, payload: ERROR_ALERT});
     });
   }
 };
@@ -45,10 +52,10 @@ export const getInvoice = (invoiceId) => {
       if (response.status === 200 && response.data && (typeof response.data === 'object')) {
         dispatch({type: types.GET_INVOICE, payload: response.data})
       } else {
-        dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
+        dispatch({type: types.ALERT, payload: ERROR_ALERT});
       }
     }, (error) => {
-      dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
+      dispatch({type: types.ALERT, payload: ERROR_ALERT});
     });
   }
 };
@@ -79,13 +86,13 @@ export const createInvoice = (invoice, invoiceItems) => {
               .then((result) => {
                 dispatch({type: types.ALERT, payload: {showAlert: true, type: 'success', title: 'Success', body: 'Invoice created successfully'}});
               },(error) => {
-                dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
+                dispatch({type: types.ALERT, payload: ERROR_ALERT});
               });
         }
       }
       return response;
     },(error) => {
-      dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
+      dispatch({type: types.ALERT, payload: ERROR_ALERT});
     });
   }
 };
@@ -119,7 +126,7 @@ export const editInvoice = (invoice, invoiceItems) => {
           }
           return result[0];
         },(error) => {
-          dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
+          dispatch({type: types.ALERT, payload: ERROR_ALERT});
         });
   }
 };
@@ -157,17 +164,23 @@ export const deleteInvoice = (invoice) => {
                       dispatch({type: types.ALERT, payload: {showAlert: true, type: 'success', title: 'Success', body: 'Invoice deleted successfully'}});
                     }
                   }
+                }, (error) => {
+                  dispatch({type: types.CLOSE_INVOICE_MODAL, payload: {invoice: null, showModal: false}});
+                  dispatch({type: types.ALERT, payload: ERROR_ALERT});
                 });
               } else {
                 dispatch({type: types.CLOSE_INVOICE_MODAL, payload: {invoice: null, showModal: false}});
-                dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
+                dispatch({type: types.ALERT, payload: ERROR_ALERT});
               }
 
+            }, (error) => {
+              dispatch({type: types.CLOSE_INVOICE_MODAL, payload: {invoice: null, showModal: false}});
+              dispatch({type: types.ALERT, payload: ERROR_ALERT});
             });
       }
     },(error) => {
       dispatch({type: types.CLOSE_INVOICE_MODAL, payload: {invoice: null, showModal: false}});
-      dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
+      dispatch({type: types.ALERT, payload: ERROR_ALERT});
     });
   }
 };
