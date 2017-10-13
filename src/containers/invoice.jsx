@@ -10,31 +10,32 @@ export class InvoiceEdit extends React.Component{
     constructor(props) {
         super(props);
         this.state = {
-            showModal: false,//
             mode: 'create',
-            elementIsSaving: false,
             invoiceIsSaving: false,
-            productList: [],
-            customerList: [],
+            productList: {},
+            productListOption: [],
+            customerListOption: [],
             invoice: {
                 id: null,
                 discount: 0,
                 customer_id: null,
                 total: 0
             },
-            invoiceElements: {},
+            invoiceItems: [],
             currentCustomer: null,
-            currentProduct: null
+            currentProduct: null,
+            isBlankTouched: false
         };
         this.customerChange = this.customerChange.bind(this);
         this.productChange = this.productChange.bind(this);
         this.discountChange = this.discountChange.bind(this);
-        this.addElement = this.addElement.bind(this);
+        this.addItem = this.addItem.bind(this);
         this.changeQty = this.changeQty.bind(this);
         this.saveInvoice = this.saveInvoice.bind(this);
     }
 
     componentDidMount() {
+        document.title = 'Invoice';
         this.props.getInvoiceProductMeta();
         this.props.getInvoiceCustomerMeta();
         let url = this.props.location.pathname;
@@ -49,132 +50,134 @@ export class InvoiceEdit extends React.Component{
     }
 
     componentWillReceiveProps (nextProps) {
-        let promises = [];
-
         if(nextProps.invoiceProductMeta && (nextProps.invoiceProductMeta.length != this.state.productList.length)) {
-             let productList = nextProps.invoiceProductMeta;
-             let processedProductList = [];
-             productList.map((product) => {
-                processedProductList.push({value: product.id, label: product.name, price: product.price});
+             let loadedProductList = nextProps.invoiceProductMeta;
+             let productListOption = [];
+             let productList = {};
+            loadedProductList.map((product) => {
+                productListOption.push({value: product.id, label: product.name});
+                productList[product.id] = {
+                    name: product.name,
+                    price: product.price
+                };
              });
-            this.setState({productList: processedProductList}, () => {
-                promises.push(processedProductList);
-            })
+            this.setState({productList, productListOption});
         }
         if(nextProps.invoiceCustomerMeta && (nextProps.invoiceCustomerMeta.length != this.state.productList.length)) {
             let customerList = nextProps.invoiceCustomerMeta;
-            let processedCustomerList = [];
+            let customerListOption = [];
             customerList.map((customer) => {
-                processedCustomerList.push({value: customer.id, label: customer.name});
+                customerListOption.push({value: customer.id, label: customer.name});
             });
-            this.setState({customerList: processedCustomerList})
+            this.setState({customerListOption});
         }
         if(this.state.mode == 'edit') {
             if(nextProps.invoice && nextProps.invoice.id && (nextProps.invoice.id != this.state.invoice.id)) {
                 this.setState({invoice: nextProps.invoice}, () => {
-                    this.state.customerList.map((customer, i) => {
+                    this.state.customerListOption.map((customer, i) => {
                         if(customer.value == this.state.invoice.customer_id) {
                             this.setState({currentCustomer: customer});
                         }
                     });
-                    this.props.getInvoiceElements(this.state.invoice.id);
+                    this.props.getInvoiceItems(this.state.invoice.id);
                 });
             }
-            if(nextProps.invoiceElements && nextProps.invoiceElements.length) {
-                Promise.all(promises)
-                    .then((result) => {
-                        let loadedInvoiceElements = nextProps.invoiceElements;
-                        let invoiceElements = {};
-                        let productList = {};
-                        this.state.productList.map((product, i) => {
-                            productList[product.value] = product;
-                        });
-                        loadedInvoiceElements.map((element, i) => {
-                            invoiceElements[element.id] = {
-                                name: productList[element.product_id].label,
-                                product_id: productList[element.product_id].value,
-                                price: productList[element.product_id].price,
-                                quantity: element.quantity
-                            };
-                        });
-                        this.setState({invoiceElements}, () => {
-                            //console.log(this.state.invoiceElements, this.state.productList);
-                        });
-                    });
-
+            if(nextProps.invoiceItems) {
+                this.setState({invoiceItems: nextProps.invoiceItems}, () => {
+                    this.calculateTotal();
+                });
             }
         }
+    }
 
+    calculateTotal() {
+        let { invoice, invoiceItems, productList } = this.state;
+        let total = 0;
+        let discount = parseFloat(invoice.discount);
+
+        invoiceItems.map((item, i) => {
+            if(!item.isDeleted) {
+                total += parseFloat(productList[item.product_id].price)*parseInt(item.quantity);
+            }
+        });
+        invoice.total = Math.ceil(total*(100 - discount))/100;
+        this.setState({invoice})
     }
 
     discountChange(event) {
-        let invoice = this.state.invoice;
+        let { invoice } = this.state;
         invoice[event.target.name] = (event.target.value > 100) ? 100 : (event.target.value < 0) ? 0 : event.target.value;
-        this.setState({invoice});
+        this.setState({invoice, isBlankTouched:true}, () => {
+            this.calculateTotal();
+        });
     }
 
     customerChange(val) {
-        let invoice = this.state.invoice;
+        let { invoice } = this.state;
         invoice.customer_id = val && val.value || null;
-        this.setState({currentCustomer: val, invoice}, () => {
-            //console.log(this.state);
-        });
+        this.setState({currentCustomer: val, invoice, isBlankTouched:true});
     }
 
     productChange(val) {
-        this.setState({currentProduct: val}, () => {
-            //console.log(this.state.currentProduct);
-        });
+        this.setState({currentProduct: val});
     }
 
-    addElement() {
-        let { invoice, invoiceElements, currentProduct } = this.state;
-        if(invoiceElements[currentProduct.value]) return;
-        invoiceElements[currentProduct.value] = {
-            name: currentProduct.label,
-            product_id: currentProduct.value,
-            price: currentProduct.price,
-            quantity: 1
-        };
-        this.setState({invoiceElements}, () => {
-            if(this.state.mode == 'edit') {
-                let elementToSend = {
-                    invoice_id: invoice.id,
-                    product_id: currentProduct.value,
-                    quantity: 1
-                };
-                this.setState({elementIsSaving: true});
-                this.props.createInvoiceElement(invoice.id, elementToSend).then((response) => {
-                    if (response.status === 200 && response.data) {
-                        this.setState({elementIsSaving: false});
-                    }
-                });
+    addItem() {
+        let { invoice, invoiceItems, currentProduct } = this.state;
+        let isItemExist = false;
+
+        invoiceItems.map((item, i) => {
+            if(!item.isDeleted && item.product_id == currentProduct.value) {
+                isItemExist = true;
             }
         });
+        if(isItemExist) return;
+
+        invoiceItems.push({
+            id: null,
+            invoice_id: invoice.id,
+            product_id: currentProduct.value,
+            quantity: 1
+        });
+        this.setState({invoiceItems, isBlankTouched: true}, () => {
+            this.calculateTotal();
+        });
     }
 
-    deleteElement(elementId) {
-        let { invoice } = this.state;
-        this.props.openInvoiceModal(invoice, elementId);
+    deleteItem(itemId) {
+        let { invoice, invoiceItems } = this.state;
+        this.props.openInvoiceModal(invoice, itemId, invoiceItems);
+        this.setState({isBlankTouched: true});
     }
 
     changeQty(event) {
         let el = event.target;
-        let { invoiceElements } = this.state;
-        invoiceElements[el.name].quantity = el.value;
-        this.setState({invoiceElements});
+        let { invoiceItems } = this.state;
+
+        if(!(parseFloat(el.value)>0)) {
+            el.value = 1;
+        }
+        let key = el.id.replace('key_', '');
+        invoiceItems[key].quantity = el.value;
+        if(this.state.mode == 'edit' && (invoiceItems[key].id != null)) {
+            invoiceItems[key].isEdited = true;
+        }
+        this.setState({invoiceItems, isBlankTouched: true}, () => {
+            this.calculateTotal();
+        });
     }
 
     saveInvoice() {
-        let {invoice, invoiceElements} = this.state;
+        let {invoice, invoiceItems} = this.state;
         if(this.state.mode == 'create') {
-            this.props.createInvoice(invoice, invoiceElements).then((result) => {
+            this.props.createInvoice(invoice, invoiceItems).then((result) => {
                 if (result.status === 200) {
                     this.props.history.push(`/invoices`);
                 }
             });
         } else if(this.state.mode == 'edit') {
-            this.props.editInvoice(invoice).then((result) => {
+            this.props.editInvoice(invoice, invoiceItems)
+            .then((result) => {
                 if (result.status === 200) {
                     this.props.history.push(`/invoices`);
                 }
@@ -183,8 +186,7 @@ export class InvoiceEdit extends React.Component{
     }
 
     render() {
-        const { invoiceElements } = this.state;
-        const invoiceElementsKeys = Object.keys(invoiceElements);
+        const { invoice, invoiceItems, productList } = this.state;
 
         return (
             <div className="container">
@@ -212,8 +214,8 @@ export class InvoiceEdit extends React.Component{
                                     <Select
                                         name="form-field-name"
                                         value={this.state.currentCustomer}
-                                        options={this.state.customerList}
-                                        isLoading={!this.state.customerList.length}
+                                        options={this.state.customerListOption}
+                                        isLoading={!this.state.customerListOption.length}
                                         onChange={this.customerChange}
                                         />
                                 </FormGroup>
@@ -227,8 +229,8 @@ export class InvoiceEdit extends React.Component{
                                 <Select
                                     name="form-field-name"
                                     value={this.state.currentProduct}
-                                    options={this.state.productList}
-                                    isLoading={!this.state.productList.length}
+                                    options={this.state.productListOption}
+                                    isLoading={!this.state.productListOption.length}
                                     onChange={this.productChange}
                                     />
                             </FormGroup>
@@ -236,7 +238,7 @@ export class InvoiceEdit extends React.Component{
                          <Col  sm={3}>
                             <Button className="marginTop20 floatLeft"
                                     bsStyle="primary"
-                                    onClick={this.addElement}
+                                    onClick={this.addItem}
                                     disabled={!this.state.currentProduct}>Add</Button>
                          </Col>
 
@@ -253,33 +255,40 @@ export class InvoiceEdit extends React.Component{
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {invoiceElementsKeys ? invoiceElementsKeys.map((elementId, i) =>
-                                        <tr key={i}>
-                                            <td>{invoiceElements[elementId].name}</td>
-                                            <td>{invoiceElements[elementId].price}</td>
-                                            <td>
-                                                <FormControl
-                                                    type="number"
-                                                    name={elementId}
-                                                    placeholder="Quantity"
-                                                    value={invoiceElements[elementId].quantity}
-                                                    onChange={this.changeQty}/>
-                                            </td>
-                                            <td>
-                                                <Button bsStyle="danger" onClick={this.deleteElement.bind(this, elementId)}>Delete</Button>
-                                                {this.state.elementIsSaving ? <span>L</span> : null}
-                                            </td>
-                                        </tr>
+                                {invoiceItems.length ? invoiceItems.map((item, i) => {
+                                    if(!item.isDeleted) {
+                                        return <tr key={i}>
+                                                    <td>{productList[item.product_id].name}</td>
+                                                    <td>{productList[item.product_id].price}</td>
+                                                    <td>
+                                                        <FormControl
+                                                            type="number"
+                                                            id={'key_' + i}
+                                                            placeholder="Quantity"
+                                                            value={item.quantity}
+                                                            onChange={this.changeQty}/>
+                                                    </td>
+                                                    <td>
+                                                        <Button bsStyle="danger" onClick={this.deleteItem.bind(this, item.id)}>Delete</Button>
+                                                    </td>
+                                                </tr>
+                                    }
+                                }
+
                                 ) : null}
                                 </tbody>
                             </Table>
                          </Col>
 
+                         <Col sm={12}></Col>
+
+                         <Col sm={12}><h2>Total: {invoice.total}</h2></Col>
+
                          <Col sm={3}>
                             <Button className="marginTop20 floatLeft"
                                     bsStyle="success"
                                     onClick={this.saveInvoice}
-                                    disabled={!this.state.invoice.customer_id}>Save</Button>
+                                    disabled={!this.state.invoice.customer_id || !this.state.isBlankTouched && (this.state.mode == 'edit')}>Save</Button>
                          </Col>
 
                          <Col sm={12}></Col>
@@ -290,7 +299,6 @@ export class InvoiceEdit extends React.Component{
         )
     }
 }
-
 
 const mapStateToProps = (state) => {
     const {invoices} = state;

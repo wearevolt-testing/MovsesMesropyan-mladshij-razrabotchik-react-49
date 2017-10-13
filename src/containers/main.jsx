@@ -1,16 +1,17 @@
 import React, { Component } from 'react';
 import { BrowserRouter, Link, Switch, Route, Redirect } from 'react-router-dom';
 
-import Navigation from './Navigation';
-import Home from './Home';
-import Invoices from './Invoices';
+import Navigation from './navigation';
+import Home from './home';
+import Invoices from './invoices';
 import InvoiceEdit from './invoice';
-import Customers from './Customers';
-import Products from './Products';
+import Customers from './customers';
+import Products from './products';
 
 import CustomerModal from '../components/customerModal';
 import ProductModal from '../components/productModal';
 import InvoiceModal from '../components/invoiceModal';
+import GlobalAlert from '../components/globalAlert';
 
 
 export default class Main extends Component {
@@ -35,6 +36,7 @@ export default class Main extends Component {
                   <ProductModal />
                   <CustomerModal />
                   <InvoiceModal />
+                  <GlobalAlert />
               </div>
           </BrowserRouter>
       );

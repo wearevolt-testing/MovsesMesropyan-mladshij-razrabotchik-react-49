@@ -2,32 +2,33 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { Table, Button } from 'react-bootstrap';
 
-import * as  ProductsActions from '../actions/products';
+import * as  CustomersActions from '../actions/customers';
 import Spinner from './../components/spinner';
 
-export class Products extends React.Component{
+export class Customers extends React.Component{
     constructor(props) {
         super(props);
+        this.state = {}
     }
 
     componentDidMount () {
-        document.title = 'Product List';
-        this.props.getProductList();
+        document.title = 'Customer List';
+        this.props.getCustomerList();
     }
 
-    openModal(product, action) {
-        let clonedProduct = Object.assign({}, product);
-        this.props.openProductModal(clonedProduct, action);
+    openModal(customer, action) {
+        let clonedCustomer = Object.assign({}, customer);
+        this.props.openCustomerModal(clonedCustomer, action);
     }
 
     render(){
-        const { productsList } = this.props.products;
+        const { customersList } = this.props.customers;
 
         return (
             <div className="container">
                 <div className="row">
                     <div className="col-lg-12">
-                        <h1 className="marginRight10 floatLeft">Product List</h1>
+                        <h1 className="marginRight10 floatLeft">Customer List</h1>
                         <Button className="marginTop20 floatLeft" bsStyle="primary" onClick={this.openModal.bind(this, null, 'create')}>Create</Button>
                         <div className="clearfix"></div>
                     </div>
@@ -39,22 +40,27 @@ export class Products extends React.Component{
                             <tr>
                                 <th>#</th>
                                 <th>Name</th>
-                                <th>Price</th>
+                                <th>Address</th>
+                                <th>Phone</th>
                                 <th></th>
                             </tr>
                             </thead>
                             <tbody>
-                            {productsList ? productsList.map((product, i) =>
+                            {(customersList.length > 0) ? customersList.map((customer, i) =>
                             <tr key={i}>
                                 <td>{i+1}</td>
-                                <td>{product.name}</td>
-                                <td>{product.price}</td>
+                                <td>{customer.name}</td>
+                                <td>{customer.address}</td>
+                                <td>{customer.phone}</td>
                                 <td width="150px">
-                                    <Button className="marginRight10" bsStyle="warning" onClick={this.openModal.bind(this, product, 'edit')}>Edit</Button>
-                                    <Button bsStyle="danger" onClick={this.openModal.bind(this, product, 'delete')}>Delete</Button>
+                                    <Button className="marginRight10" bsStyle="warning" onClick={this.openModal.bind(this, customer, 'edit')}>Edit</Button>
+                                    <Button bsStyle="danger" onClick={this.openModal.bind(this, customer, 'delete')}>Delete</Button>
                                 </td>
                             </tr>
-                            ) : null}
+                            ) :
+                            <tr>
+                                <td colSpan="5"><p className="center">List is empty</p></td>
+                            </tr>}
                             </tbody>
                         </Table>}
                     </div>
@@ -64,10 +70,10 @@ export class Products extends React.Component{
     }
 }
 
-const mapStateToProps = ({ main, products }) => {
+const mapStateToProps = ({ main, customers }) => {
     const { isLoading } = main;
 
-    return {isLoading, products};
+    return {isLoading, customers};
 };
 
-export default connect(mapStateToProps, ProductsActions )(Products)
+export default connect(mapStateToProps, CustomersActions )(Customers)

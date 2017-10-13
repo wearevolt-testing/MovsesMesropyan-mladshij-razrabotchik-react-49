@@ -67,7 +67,7 @@ export class Invoices extends React.Component{
                                 </tr>
                             </thead>
                             <tbody>
-                                {invoicesList.length > 0 ? invoicesList.map((invoice, i) =>
+                                {(invoicesList.length > 0) ? invoicesList.map((invoice, i) =>
                                 <tr key={i}>
                                     <td>{i+1}</td>
                                     <td>{customerList[invoice.customer_id]}</td>

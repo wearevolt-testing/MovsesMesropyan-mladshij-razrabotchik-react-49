@@ -57,20 +57,20 @@ const invoiceAppAPI = {
         return axios.delete(`/api/invoices/${invoiceId}`);
     },
 
-    getInvoiceElements: (invoiceId) => {
+    getInvoiceItems: (invoiceId) => {
         return axios.get(`/api/invoices/${invoiceId}/items/`);
     },
 
-    createInvoiceElement: (invoiceId, invoiceElement) => {
-        return axios.post(`/api/invoices/${invoiceId}/items`, invoiceElement);
+    createInvoiceItem: (invoiceId, invoiceItem) => {
+        return axios.post(`/api/invoices/${invoiceId}/items`, invoiceItem);
     },
 
-    editInvoiceElement: (invoiceId, invoiceElement) => {
-        return axios.put(`/api/invoices/${invoiceId}/items/${invoiceElement.id}`, invoiceElement);
+    editInvoiceItem: (invoiceId, invoiceItem) => {
+        return axios.put(`/api/invoices/${invoiceId}/items/${invoiceItem.id}`, invoiceItem);
     },
 
-    deleteInvoiceElement: (invoiceId, elementId) => {
-        return axios.delete(`/api/invoices/${invoiceId}/items/${elementId}`);
+    deleteInvoiceItem: (invoiceId, itemId) => {
+        return axios.delete(`/api/invoices/${invoiceId}/items/${itemId}`);
     }
 };
 

@@ -9,22 +9,22 @@ export class InvoiceModal extends React.Component{
         super(props);
         this.state = {
             showModal: false,
-            elementId: false,
+            itemId: false,
             invoice: {}
         };
         this.deleteInvoice = this.deleteInvoice.bind(this);
-        this.deleteInvoiceElement = this.deleteInvoiceElement.bind(this);
+        this.deleteInvoiceItem = this.deleteInvoiceItem.bind(this);
         this.closeModal = this.closeModal.bind(this);
     }
 
     componentWillReceiveProps (nextProps) {
         if(nextProps.invoiceModal && (nextProps.invoiceModal.showModal !== this.props.invoiceModal.showModal)) {
-            let { showModal, elementId, invoice } = nextProps.invoiceModal;
-            this.setState({showModal, elementId});
+            let { showModal, itemId, invoice, invoiceItems } = nextProps.invoiceModal;
+            this.setState({showModal, itemId});
             if(invoice && invoice.id) {
-                this.setState({invoice});
+                this.setState({invoice, invoiceItems});
             } else {
-                this.setState({invoice: {}});
+                this.setState({invoice: {}, invoiceItems: []});
             }
         }
     }
@@ -33,8 +33,8 @@ export class InvoiceModal extends React.Component{
         this.props.deleteInvoice(this.state.invoice);
     }
 
-    deleteInvoiceElement() {
-        this.props.deleteInvoiceElement(this.state.invoice.id, this.state.elementId);
+    deleteInvoiceItem() {
+        this.props.deleteInvoiceItem(this.state.invoice.id, this.state.itemId, this.state.invoiceItems);
     }
 
     closeModal() {
@@ -48,11 +48,11 @@ export class InvoiceModal extends React.Component{
                     <Modal.Title>Delete Invoice</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <p className="center">Are you sure, you want to delete invoice?</p>
+                    <p className="center">Are you sure, you want to delete invoice{this.state.itemId ? ' item' : null}?</p>
                 </Modal.Body>
                 <Modal.Footer>
-                    {this.state.elementId ?
-                        <Button bsStyle="danger" onClick={this.deleteInvoiceElement}>Confirm</Button>:
+                    {this.state.itemId ?
+                        <Button bsStyle="danger" onClick={this.deleteInvoiceItem}>Confirm</Button>:
                         <Button bsStyle="danger" onClick={this.deleteInvoice}>Confirm</Button>}
 
                     <Button onClick={this.closeModal}>Cancel</Button>

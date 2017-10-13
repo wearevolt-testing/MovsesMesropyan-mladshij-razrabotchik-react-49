@@ -10,3 +10,9 @@
 .center {
     text-align: center;
 }
+.alertWrapper {
+    position: fixed;
+    right: 0;
+    top: 60px;
+    width: 320px;
+}
