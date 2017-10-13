@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "start-dev": "NODE_ENV=development node server.js",
+    "build": "webpack",
+    "build-prod": "webpack --config webpack.production.config.js ",
     "start-prod": "NODE_ENV=production PORT=3000 node server.js"
   },
   "dependencies": {
@@ -44,6 +45,7 @@
     "url-loader": "^0.6.2",
     "webpack": "^1.13.0",
     "webpack-dev-middleware": "^1.2.0",
-    "webpack-hot-middleware": "^2.2.0"
+    "webpack-hot-middleware": "^2.2.0",
+    "webpack-merge": "^4.1.0"
   }
 }
