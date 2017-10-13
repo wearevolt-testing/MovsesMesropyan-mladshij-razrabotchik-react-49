@@ -84,6 +84,8 @@ export const createInvoice = (invoice, invoiceItems) => {
         }
       }
       return response;
+    },(error) => {
+      dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
     });
   }
 };
@@ -152,12 +154,20 @@ export const deleteInvoice = (invoice) => {
                       invoicesList.splice(index, 1);
                       dispatch({type: types.UPDATE_INVOICE_LIST, payload: invoicesList});
                       dispatch({type: types.CLOSE_INVOICE_MODAL, payload: {invoice: null, showModal: false}});
+                      dispatch({type: types.ALERT, payload: {showAlert: true, type: 'success', title: 'Success', body: 'Invoice deleted successfully'}});
                     }
                   }
                 });
+              } else {
+                dispatch({type: types.CLOSE_INVOICE_MODAL, payload: {invoice: null, showModal: false}});
+                dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
               }
+
             });
       }
+    },(error) => {
+      dispatch({type: types.CLOSE_INVOICE_MODAL, payload: {invoice: null, showModal: false}});
+      dispatch({type: types.ALERT, payload: {showAlert: true, type: 'danger', title: 'Oh snap! You got an error!', body: 'Something went wrong. Please try again'}});
     });
   }
 };
