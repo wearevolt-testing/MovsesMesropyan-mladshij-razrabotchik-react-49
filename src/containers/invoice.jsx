@@ -236,7 +236,8 @@ export class InvoiceEdit extends React.Component{
                             </FormGroup>
                          </Col>
                          <Col  sm={3}>
-                            <Button className="marginTop20 floatLeft"
+                            <Button className="floatLeft"
+                                    style={styles.addBtn}
                                     bsStyle="primary"
                                     onClick={this.addItem}
                                     disabled={!this.state.currentProduct}>Add</Button>
@@ -264,6 +265,7 @@ export class InvoiceEdit extends React.Component{
                                                         <FormControl
                                                             type="number"
                                                             id={'key_' + i}
+                                                            style={styles.qtyField}
                                                             placeholder="Quantity"
                                                             value={item.quantity}
                                                             onChange={this.changeQty}/>
@@ -282,7 +284,7 @@ export class InvoiceEdit extends React.Component{
 
                          <Col sm={12}></Col>
 
-                         <Col sm={12}><h2>Total: {invoice.total}</h2></Col>
+                         <Col sm={12}><p style={styles.total}>Total: {invoice.total}</p></Col>
 
                          <Col sm={3}>
                             <Button className="marginTop20 floatLeft"
@@ -299,6 +301,18 @@ export class InvoiceEdit extends React.Component{
         )
     }
 }
+const styles = {
+    addBtn: {
+        marginTop: "28px"
+    },
+    qtyField: {
+        maxWidth: '150px',
+        minWidth: '50px'
+    },
+    total: {
+        fontSize: '35px'
+    }
+};
 
 const mapStateToProps = (state) => {
     const {invoices} = state;
