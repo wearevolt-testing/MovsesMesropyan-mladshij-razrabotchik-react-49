@@ -96,7 +96,7 @@ export class InvoiceEdit extends React.Component{
         let discount = parseFloat(invoice.discount);
 
         invoiceItems.map((item, i) => {
-            if(!item.isDeleted) {
+            if(!item.isDeleted && productList[item.product_id]) {
                 total += parseFloat(productList[item.product_id].price)*parseInt(item.quantity);
             }
         });
@@ -257,7 +257,7 @@ export class InvoiceEdit extends React.Component{
                                 </thead>
                                 <tbody>
                                 {invoiceItems.length ? invoiceItems.map((item, i) => {
-                                    if(!item.isDeleted) {
+                                    if(!item.isDeleted && productList[item.product_id]) {
                                         return <tr key={i}>
                                                     <td>{productList[item.product_id].name}</td>
                                                     <td>{productList[item.product_id].price}</td>
